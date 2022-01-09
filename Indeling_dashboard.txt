@@ -1,0 +1,27 @@
+VERSCHILLENDE TABBLADEN VOOR:
+- DATAVERKENNING TERUGLEVERING
+- DATAVERKENNING EXTRA REGRESSORS
+- OUTLIERS EN TRAIN-TEST SPLIT
+- ELK MODEL ANDER TABBLAD
+
+1. Opdrachtomschrijving e.d.
+
+2. Eerste plot teruglevering incl rolling mean
+3. Histogram per seizoen en boxplots per maand
+4. Gem per week/maand/jaar met callback
+5. ACF en PACF, origineel en gedifferentieerd, adfuller en schatting p en q
+
+6. Visualisaties weer data met rolling mean 
+7. Correlatie heatmap
+8. Lineplot teruglevering met alle weerdata, callback met dropdown
+
+9. Isolation Forest lineplots
+10. ACF en PACF van originele + geinterpoleerd
+11. Train-test split lineplot
+
+BIJ ALLE MODELLEN AIC EN MAE
+12. Model 1 (FT)
+13. Model 2 (zon)
+14. Model 3 (zon+transformatie)
+15. Model 4 (zon+temp)
+16. ? Model 5 (zon+cluster)
