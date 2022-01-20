@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan  9 20:35:32 2022
-
-@author: Lea
-
 Dashboard tijdreeksen 2122
-Ymke van der Waal en Lea van den Heuvel (18057020)
+Ymke van der Waal (18071279) en Lea van den Heuvel (18057020)
 
 Dit is de code voor de dashboard behorende bij de eindopdracht.
 
@@ -33,6 +29,8 @@ import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
 import plotly.io as pio
+
+from dash.dependencies import Input, Output
 
 # plt.rcParams["figure.figsize"] = (15,8)
 # plt.rcParams['image.cmap'] = 'Paired'
@@ -169,6 +167,116 @@ def plot_anom_result(df, cols, anom_col, fig, row, col):
     
     return fig
 
+def plot_fourier(df1, col1, name1, df2, col2, name2, title):
+    """
+    Returns plot met daarin fourier terms geplot
+        
+    """
+    
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=df1.index,
+                                        y=df1[col1],
+                                        name=name1,
+                                        line_color='rgb(255,127,14)'
+                                       ))
+    
+    fig.add_trace(go.Scatter(x=df2.index,
+                                        y=df2[col2],
+                                        name=name2,
+                                        line_color='rgb(76,146,194)'
+                                       ))
+
+    fig.update_layout(legend=dict(orientation="h",
+                                          yanchor="bottom",
+                                          y=1.02,
+                                          xanchor="right",
+                                          x=1),
+                                 title={
+                                     'text': title,
+                                     'y':0.86,
+                                     'x': 0.08},
+#                                  yaxis_title="Waarde (kWh)",
+#                                  xaxis_title="Datum",
+                                 template="ggplot2"
+                                )
+
+    return fig
+
+def plot_fourier2(df1, col1, name1, df2, col2, name2, df3, col3, name3, title):
+    """
+    Returns plot met daarin fourier terms geplot
+        
+    """
+    
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=df1.index,
+                                        y=df1[col1],
+                                        name=name1,
+                                        line_color='rgb(76,146,194)'
+                                       ))
+    
+    fig.add_trace(go.Scatter(x=df2.index,
+                                        y=df2[col2],
+                                        name=name2,
+                                        line_color='rgb(255,127,14)'
+                                       ))
+    
+    fig.add_trace(go.Scatter(x=df3.index,
+                                        y=df3[col3],
+                                        name=name3,
+                                        line_color='rgb(54,165,54)'
+                                       ))    
+
+    fig.update_layout(legend=dict(orientation="h",
+                                          yanchor="bottom",
+                                          y=1.02,
+                                          xanchor="right",
+                                          x=1),
+                                 title={
+                                     'text': title,
+                                     'y':0.86,
+                                     'x': 0.08},
+#                                  yaxis_title="Waarde (kWh)",
+#                                  xaxis_title="Datum",
+                                 template="ggplot2"
+                                )
+
+    return fig
+
+
+def plot_forecast(pred_col, title):
+    """
+    Plot de train, test en voorspelling op de train en testset
+    
+    """
+    
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=ts_test.index,
+                                        y=ts_test['teruglevering'],
+                                        name='Test',
+                                        line_color='rgb(76,146,194)'
+                                       ))
+    fig.add_trace(go.Scatter(x=ts_train.index,
+                                        y=ts_train['teruglevering'],
+                                        name='Train',
+                                        line_color='rgb(255,127,14)'
+                                       ))
+    fig.add_trace(go.Scatter(x=ts_test.index,
+                                        y=ts_test[pred_col],
+                                        name='Voorspelling test',
+                                        line_color='rgb(0,0,0)'
+                                       ))
+    fig.add_trace(go.Scatter(x=ts_train.index,
+                                        y=ts_train[pred_col],
+                                        name='Voorspelling train',
+                                        line_color='rgb(0,0,0)',
+                                        line= dict(dash='dash')
+                                       ))
+    return fig
+
 #%% Read data and set date_time index
 ts = pd.read_csv('Data_tijdreeksen.csv', index_col = 'date')
 ts.index = pd.to_datetime(ts.index)
@@ -280,13 +388,21 @@ ts_grouped_month = ts.groupby('day_of_month')['teruglevering'].mean()
 ts_grouped_year = ts.groupby(['month', 'month_name'])['teruglevering']\
                                                                     .mean()\
                                                                             .reset_index()
-                                                                            
-                                                                            # Callback toevoegen!
-fig_mean = px.line(ts_grouped_day, x="day_of_week", y="teruglevering", 
-                   title='Gemiddeld elektriciteit teruglevering')
 
-fig_mean.update_layout(template="ggplot2"
-                       )
+fig_mean_dofw = px.line(ts_grouped_day, x="day_of_week_name", y="teruglevering", 
+                   title='Gemiddeld elektriciteit teruglevering per dag van de week')
+fig_mean_dofw.update_layout(template="ggplot2")
+
+fig_mean_dofm = px.line(ts_grouped_month, x=ts_grouped_month.index, y="teruglevering", 
+                   title='Gemiddeld elektriciteit teruglevering per dag van de maand')
+fig_mean_dofm.update_layout(template="ggplot2")
+
+fig_mean_month = px.line(ts_grouped_year, x="month_name", y="teruglevering", 
+                   title='Gemiddeld elektriciteit teruglevering per maand')
+fig_mean_month.update_layout(template="ggplot2")
+
+dict_mean = {'day_of_week': fig_mean_dofw, 'day_of_month': fig_mean_dofm, 'month': fig_mean_month}
+
 # fig_mean.show()
 
 #%% ACF's and PACF's of original
@@ -376,6 +492,26 @@ fig_rolling_zon = plot_rolling_mean(ts, ts_rolling, 'zonneschijn',
 fig_rolling_zon.update_layout(yaxis_title="Waarde (0.1 uur)",
                               xaxis_title="Datum")
 
+fig_rolling_temp = plot_rolling_mean(ts, ts_rolling, 'temp',
+                                   'Temperatuur in 0.1 graden Celcius')
+
+fig_rolling_temp.update_layout(yaxis_title="Waarde (0.1 graden Celcius)",
+                              xaxis_title="Datum")
+
+fig_rolling_duur_neerslag = plot_rolling_mean(ts, ts_rolling, 'duur_neerslag',
+                                   'Neerslag in 0.1 uur')
+
+fig_rolling_duur_neerslag.update_layout(yaxis_title="Waarde (0.1 uur)",
+                              xaxis_title="Datum")
+
+fig_rolling_som_neerslag = plot_rolling_mean(ts, ts_rolling, 'som_neerslag',
+                                   'Neerslag in 0.1 mm')
+
+fig_rolling_som_neerslag.update_layout(yaxis_title="Waarde (0.1 mm)",
+                              xaxis_title="Datum")
+
+dict_weer = {'Zonneschijn':fig_rolling_zon, 'Temperatuur':fig_rolling_temp, 'Duur neerslag':fig_rolling_duur_neerslag, 'Som neerslag':fig_rolling_som_neerslag}
+
 # fig_rolling_zon.show()
 
 #%% Correlation heatmap
@@ -393,12 +529,20 @@ fig_corr = px.imshow(np.round(corr_teruglevering, decimals = 2), # Rond af op tw
 #fig_corr.show()
 
 #%% Regplot for weather data vs teruglevering
-# Callback toevoegen voor andere weer-data!
-fig_reg = px.scatter(ts, x="temp", y="teruglevering", trendline="ols")
-fig_reg.update_layout(title={'text': "Teruglevering (kWh) vs temperatuur (0.1 ℃)"},
-                        template="ggplot2"
-                       )
-# fig_reg.show()
+fig_reg_temp = px.scatter(ts, x="temp", y="teruglevering", trendline="ols")
+fig_reg_temp.update_layout(title={'text': "Teruglevering (kWh) vs temperatuur (0.1 ℃)"},
+                        template="ggplot2")
+fig_reg_zon = px.scatter(ts, x="zonneschijn", y="teruglevering", trendline="ols")
+fig_reg_zon.update_layout(title={'text': "Teruglevering (kWh) vs zonneschijn (0.1 uur)"},
+                        template="ggplot2")
+fig_reg_dn = px.scatter(ts, x="duur_neerslag", y="teruglevering", trendline="ols")
+fig_reg_dn.update_layout(title={'text': "Teruglevering (kWh) vs neerslagduur (0.1 uur)"},
+                        template="ggplot2")
+fig_reg_sn = px.scatter(ts, x="som_neerslag", y="teruglevering", trendline="ols")
+fig_reg_sn.update_layout(title={'text': "Teruglevering (kWh) vs neerslagsom (0.1 mm)"},
+                        template="ggplot2")
+
+dict_reg = {'Zonneschijn': fig_reg_zon, 'Temperatuur':fig_reg_temp, 'Duur neerslag':fig_reg_dn, 'Som neerslag':fig_reg_sn}
 
 #%% Visualise anomalies
 fig_anom = make_subplots(rows=3, cols=1)
@@ -506,7 +650,7 @@ fig_split.update_layout(title={'text':'Train-test split'})
 
 # fig_split.show()
 
-#%% Functies voor de modellen
+#%% Inladen data voor de modellen
 ts = pd.read_csv('ts.csv', index_col = 'Meetdatum')
 ts.index = pd.to_datetime(ts.index)
 ts_model = pd.read_csv('ts_model.csv', index_col = 'index')
@@ -518,9 +662,18 @@ ts_test.index = pd.to_datetime(ts_test.index)
 df_fourier = pd.read_csv('df_fourier.csv', index_col = 'index')
 df_fourier.index = pd.to_datetime(df_fourier.index)
 
-fourier_cols = ['sin365_1', 'cos365_1']
+#%% Model 1 
+# Plotten van model 1
+fig_FT_1 = plot_fourier(df_fourier, 'C1','C1', 
+                        df_fourier, 'S1','S1',
+                        'De Fourier terms die het jaarlijkse seizoenscomponent modelleren')
+fig_FT_2 = plot_fourier(ts_model, 'teruglevering_int_1_sc', 'Gemodelleerd seizoenscomponent door Fourier term',
+                        df_fourier, 'Fourier_1', 'Seizoen door Fourier terms',
+                        'De Fourier terms die het jaarlijkse seizoenscomponent modelleren')
+voorspelling_model1 = plot_forecast('pred_fourier1_rev', 'Voorspelling van model met Fourier term voor siezoenscomponent')
 
-# Auto-ARIMA met FT
+# Model 1 output
+fourier_cols = ['sin365_1', 'cos365_1']
 res_fourier = pm.auto_arima(ts_train['teruglevering_int_1_sc'], 
                         d = 1,
                         start_p = 0, max_p = 2,
@@ -529,126 +682,10 @@ res_fourier = pm.auto_arima(ts_train['teruglevering_int_1_sc'],
                         information_criterion = 'aic', trace = True, 
                         error_action = 'ignore', stepwise = True
                        )
-print(res_fourier.summary())
 
-def plot_fourier(df1, col1, name1, df2, col2, name2, title):
-    """
-    Returns plot met daarin fourier terms geplot
-        
-    """
-    
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=df1.index,
-                                        y=df1[col1],
-                                        name=col1,
-                                        line_color='rgb(255,127,14)'
-                                       ))
-    
-    fig.add_trace(go.Scatter(x=df2.index,
-                                        y=df2[col2],
-                                        name=col2,
-                                        line_color='rgb(76,146,194)'
-                                       ))
-
-    fig.update_layout(legend=dict(orientation="h",
-                                          yanchor="bottom",
-                                          y=1.02,
-                                          xanchor="right",
-                                          x=1),
-                                 title={
-                                     'text': title,
-                                     'y':0.86,
-                                     'x': 0.08},
-#                                  yaxis_title="Waarde (kWh)",
-#                                  xaxis_title="Datum",
-                                 template="ggplot2"
-                                )
-
-    return fig
-
-def plot_fourier2(df1, col1, name1, df2, col2, name2, df3, col3, name3, title):
-    """
-    Returns plot met daarin fourier terms geplot
-        
-    """
-    
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=df1.index,
-                                        y=df1[col1],
-                                        name=name1,
-                                        line_color='rgb(76,146,194)'
-                                       ))
-    
-    fig.add_trace(go.Scatter(x=df2.index,
-                                        y=df2[col2],
-                                        name=name2,
-                                        line_color='rgb(255,127,14)'
-                                       ))
-    
-    fig.add_trace(go.Scatter(x=df3.index,
-                                        y=df3[col3],
-                                        name=name3,
-                                        line_color='rgb(54,165,54)'
-                                       ))    
-
-    fig.update_layout(legend=dict(orientation="h",
-                                          yanchor="bottom",
-                                          y=1.02,
-                                          xanchor="right",
-                                          x=1),
-                                 title={
-                                     'text': title,
-                                     'y':0.86,
-                                     'x': 0.08},
-#                                  yaxis_title="Waarde (kWh)",
-#                                  xaxis_title="Datum",
-                                 template="ggplot2"
-                                )
-
-    return fig
-
-
-def plot_forecast(pred_col, title):
-    """
-    Plot de train, test en voorspelling op de train en testset
-    
-    """
-    
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=ts_test.index,
-                                        y=ts_test['teruglevering'],
-                                        name='Test',
-                                        line_color='rgb(76,146,194)'
-                                       ))
-    fig.add_trace(go.Scatter(x=ts_train.index,
-                                        y=ts_train['teruglevering'],
-                                        name='Train',
-                                        line_color='rgb(255,127,14)'
-                                       ))
-    fig.add_trace(go.Scatter(x=ts_test.index,
-                                        y=ts_test[pred_col],
-                                        name='Voorspelling test',
-                                        line_color='rgb(0,0,0)'
-                                       ))
-    fig.add_trace(go.Scatter(x=ts_train.index,
-                                        y=ts_train[pred_col],
-                                        name='Voorspelling train',
-                                        line_color='rgb(0,0,0)',
-                                        line= dict(dash='dash')
-                                       ))
-    return fig
-
-#%% Model 1 plotten
-fig_FT_1 = plot_fourier(df_fourier, 'C1','C1', 
-                        df_fourier, 'S1','S1',
-                        'De Fourier terms die het jaarlijkse seizoenscomponent modelleren')
-fig_FT_2 = plot_fourier(ts_model, 'teruglevering_int_1_sc', 'Gemodelleerd seizoenscomponent door Fourier term',
-                        df_fourier, 'Fourier_1', 'Seizoen door Fourier terms',
-                        'De Fourier terms die het jaarlijkse seizoenscomponent modelleren')
-voorspelling_model1 = plot_forecast('pred_fourier1_rev', 'Voorspelling van model met Fourier term voor siezoenscomponent')
+model_1 = res_fourier.summary()
+model_1 = model_1.as_html()
+model_1
 
 #%% Model 2 plotten
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -789,17 +826,18 @@ voorspelling_model5 = plot_forecast('pred_zon_temp_rev',
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+# from dash.dependencies import Input, Output
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.config.suppress_callback_exceptions=True
 
 # Tabs
 app.layout = html.Div([
     html.H1('Voorspellen van zonne-energie'),
     dcc.Tabs(id="Tabs", value='Titelblad', children=[
-        dcc.Tab(label='naampie', value='Titelblad'),
+        dcc.Tab(label='De opdracht', value='Titelblad'),
         dcc.Tab(label='Zonne-energie', value='Tab_tl'),
         dcc.Tab(label='Weer data', value='Tab_weer'),
         dcc.Tab(label='Data bewerkingen', value='Tab_bewerkingen'),
@@ -808,6 +846,7 @@ app.layout = html.Div([
         dcc.Tab(label='Model Zonneschijnuren en transformatie Teruglevering', value='Tab_Z2'),
         dcc.Tab(label='Model Zonneschijnuren, Fourier Terms en transformatie Teruglevering', value='Tab_Z_FT'),
         dcc.Tab(label='Model Zonneschijnuren en Temperatuur, zonder Fourier Terms', value='Tab_ZT'),
+        dcc.Tab(label='De conclusie', value='Tab_conclusie')
     ]),
     html.Div(id='Tabs_content')
 ])
@@ -823,7 +862,7 @@ def render_content(tab):
                 html.P('Steeds meer huishoudens stappen over naar zonnepanelen, dit komt doordat duurzame energie tegenwoordig enorm in is. Daarnaast is er de mogelijkheid om de energie die opgewekt wordt via de zonnepanelen terug te leveren aan het energienetwerk. (waarom is dat fijn?). Dit is erg fijn, maar hoe zit het met de de hoeveelheid energie die wordt opgewekt als de zon niet of nauwelijks schijnt. (bruggetje naar de opdracht), om hier een beter inzicht te krijgen is dan ook de vraag om een voorspellingsmodel te maken dat één week vooruit voorspelt wat het energieverbruik is door zonnepanelen.'),
                 html.B('De werkwijze:'),
                 html.P('De manier waarop te werk is gegaan is als volgt: Allereerst is er onderzoek gedaan naar de te verklaren variabele, de zonne-energie. Vervolgens is door middel van de overige variabelen te plotten en de onderlinge correlatie te onderzoeken besloten welke variabele er kunnen dienen als extra verklarend voor de zonne-energie. Nadat dat deze zijn vastgesteld is er databewerking gedaan, zo is er onderzocht of er outliers in de variabelen zitten en hoe de (partiële) autocorrelatie er uit ziet. Als laatste stap in de databewerking is er splitsing gemaakt in een train- en testdataset.'),
-                html.P('Nadat alle bewerkingen voltooid zijn, zijn er verschillende modellen gemaakt. Er is begonnen met een model met alleen de zonne-energie als ... variabele. Vervolgens is stapje voor stapje uitgebreid en daarmee is het uiteindelijke model ontstaan.'),
+                html.P('Nadat alle bewerkingen voltooid zijn, zijn er verschillende modellen gemaakt. Er is begonnen met een model met alleen de zonne-energie als de te verklare variabele. Vervolgens is deze stapje voor stapje uitgebreid en daarmee is het uiteindelijke model ontstaan.'),
                 html.B('De datasets:'),
                 html.P('De datasets die zijn gebruikt voor het onderzoek zijn: (precieze namen)'),
                 html.B('De studenten:'),
@@ -857,14 +896,21 @@ def render_content(tab):
                     id='Boxplot_per_maand',
                     figure=fig_boxplot
                     ),
-            #Callback toevoegen!
             html.H3('Gemiddelde per dag(week/maand)/jaar'),
             html.Div([
                 html.P('!!! Nog iets van tekst !!!')
                 ]),
+                dcc.Dropdown(
+                    id='dropdown_mean',
+                    value='day_of_week',
+                    options=[
+                         {'label': 'Per dag van de week', 'value':'day_of_week'},
+                         {'label': 'Per dag van de maand', 'value':'day_of_month'},
+                         {'label': 'Per maand', 'value':'month'}
+                        ], searchable = False
+                    ),
                 dcc.Graph(
-                    id='Gem_tl',
-                    figure=fig_mean
+                    id='Gem_tl'
                     ),
             html.H3('ACF en PACF'),
             html.Div([
@@ -885,14 +931,22 @@ def render_content(tab):
                 ])
     elif tab == 'Tab_weer':
         return html.Div([
-            # Callback toevoegen!
             html.H3('Weer data'),
             html.Div([
                 html.P('Na het onderzoeken van de teruglevering is er gekeken naar de weersvariabelen. Onder de weersvariabelen worden verstaan: de duur van de zonneschijn, de temperatuur, de hoeveelheid neerslag en de duur van de neerslag. In de eerste grafiek zijn de weersvairabelen te zien over de loop der tijd. Daarnaast is ook het gemiddelde te zien over 7 dagen van de weersvariabelen.')
                 ]),
+                dcc.Dropdown(
+                    id='dropdown_weer',
+                    value='Zonneschijn',
+                    options=[
+                         {'label': 'Zonneschijn', 'value':'Zonneschijn'},
+                         {'label': 'Temperatuur', 'value':'Temperatuur'},
+                         {'label': 'Duur neerslag', 'value':'Duur neerslag'},
+                         {'label': 'Som neerslag', 'value':'Som neerslag'}
+                        ], searchable = False
+                    ),
                 dcc.Graph(
                     id='Rolling_mean_weer',
-                    figure=fig_rolling_zon
                     ),
             html.H3('Correlatie tussen zonne-energie en weer-data'),
             html.Div([
@@ -902,14 +956,22 @@ def render_content(tab):
                     id='Corr_weer_data',
                     figure=fig_corr
                     ),
-            # Callback toevoegen!
             html.H3('Correlatie tussen zonne-energie en weer-data'),
             html.Div([
                 html.P('Ten slotte wordt de lineaire regressie geplot tussen de teruglevering van de zonne-energie en de weersvariabelen.')
                 ]),
+                dcc.Dropdown(
+                    id='dropdown_reg',
+                    value='Zonneschijn',
+                    options=[
+                         {'label': 'Zonneschijn', 'value':'Zonneschijn'},
+                         {'label': 'Temperatuur', 'value':'Temperatuur'},
+                         {'label': 'Duur neerslag', 'value':'Duur neerslag'},
+                         {'label': 'Som neerslag', 'value':'Som neerslag'}
+                        ], searchable = False
+                    ),
                 dcc.Graph(
-                    id='Regplot_weer_tl',
-                    figure=fig_reg
+                    id='Regplot_weer_tl'
                     )
             ])
     elif tab == 'Tab_bewerkingen':
@@ -942,7 +1004,7 @@ def render_content(tab):
                     ),
             html.H3('Train-test split'),
             html.Div([
-                html.P('Ten slotte wordt de data gesplitst in een train- en testdataset. De traindataset bestaat uit ... dagen/weken en de testdataset bestaat uit ... dagen/weken')
+                html.P('Ten slotte wordt de data gesplitst in een train- en testdataset. De volledige dataset bevat 336 dagen, aangezien de opdracht is om één week (7 dagen) te voorspellen, is er voor gekozen om de testdataset 35 dagen (vijf weken) te laten zijn.')
                 ]),
                 dcc.Graph(
                     id='Split',
@@ -952,6 +1014,9 @@ def render_content(tab):
     elif tab == 'Tab_FT':
         return html.Div([
             html.H3('Model met Fourier Terms om seizoen te modelleren'),
+            html.Div([
+                html.P('Voor het maken van het eerste model is er alleen gekeken naar de te verklaren variabele, namelijk de teruglevering van de zonne-energie. Als eerst zijn er Fourier terms toegevoegd om het seizoenscomponent te modelleren. Dit is nodig om dat de dataset korter is dan twee jaar, hierdoor kan ARIMA het seizoen niet herkennen. In de graafiek hieronder is te zien hoe de Fourier Terms zich gedragen. Het lijkt er op dat de Fourier Terms het seizoen redelijk volgen. Wat wel opvallend is, is dat deze lager wordt dan nul, terwijl de teruglevering geen negatieve waarde kan aannemen. Het minimum van de Fourier Terms zou het liefst tussen december en januari vallen, omdat daar de minste stroom wordt teruggeleverd, echter valt deze nu in maart.')
+                ]),
                 dcc.Graph(
                     id='FT_1',
                     figure=fig_FT_1
@@ -961,14 +1026,23 @@ def render_content(tab):
                     figure=fig_FT_2
                     ),
             html.H3('Voorspelling model met Fourier Terms'),
+            html.Div([
+                html.P('Nadat het model volledig gemodeleerd is en er een voorspelling is gedaan wat de mogelijke teruglevering is voor een week. De voorspelling is in de plot hieronder te zien, wat direct opvalt is dat de voorspelling totaal niet lijkt op de werkelijke waarde. Zo stijgt de voorspelling terwijl in werkelijkheid de teruglevering daalt.')
+                ]),
                 dcc.Graph(
                     id='voorspelling_model1',
                     figure=voorspelling_model1
-                    )
+                    ),
+                # Html code voor output results model1
+            html.Div(html.P(html.Code(model_1)))
                 ])
     elif tab == 'Tab_Z':
         return html.Div([
             html.H3('Model met Zonneschijnuren als voorspellende variabele zonder Fourier Terms modelleren'),
+            html.Div([
+                html.P('Het eerste model geeft geen beste voorspelling voor de teruglevering van de zonne-energie. Om te zorgen dat het model beter wordt, is er voor gekozen om extra voorspellende variabele te gebruiken, namelijk het aantal zonneschijnuren op een dag. Daarnaast wordt in dit model geen gebruik gemaakt van de Fourier Terms.'),
+                html.P('In de grafiek hieronder is de voorspelling te zien van het tweede model. Deze voorspelling ziet er een stuk beter uit dan de voorspelling hiervoor. Alleen in de wintermaanden zijn de voorspeldes waarden nog te hoog en in de zomermaanden liggen de waarden te dicht bij elkaar.')
+                ]),
                 dcc.Graph(
                     id='voorspelling_model2',
                     figure=voorspelling_model2
@@ -977,6 +1051,9 @@ def render_content(tab):
     elif tab == 'Tab_Z2':
         return html.Div([
             html.H3('Model met Zonneschijnuren en transformatie op de teruglevering modelleren'),
+            html.Div([
+                html.P('Text')
+                ]),
                 dcc.Graph(
                     id='fig_corr3',
                     figure=fig_corr3
@@ -986,6 +1063,10 @@ def render_content(tab):
                     figure=fig_corr4
                     ), 
             html.H3('Voorspelling model Zonneschijnuren en transformatie van de teruglevering'),
+            html.Div([
+                html.P('Het derde model dat gemodeleerd is, is vergelijkbaar met het tweede model. Het grote verschil tussen de twee is dat er gewerkt wordt met de wortel van de teruglevering, dit is gedaan omdat het vorige model een multiplicatief probleem had, de toppen en dalen van de voorspelling en werkelijke waarden liepen steeds minder gelijk.'),
+                html.P('De voorspelling van dit model is hieronder gevisualiseerd. Zoals te zien ljikt ook deze voorspelling op de werkelijke waardes, echter is het wel zo dat de toppen en dalen hoger liggen dan de werkelijke waarden.')
+                ]),
                 dcc.Graph(
                     id='voorspelling_model3',
                     figure=voorspelling_model3
@@ -994,7 +1075,10 @@ def render_content(tab):
     elif tab == 'Tab_Z_FT':
         return html.Div([
             html.H3('Model met Zonneschijnuren, Fourier Terms en tranformatie op de teruglevering modelleren'),
-            html.H4('Resultaten seizoenscomponent met behulp van Fourier terms Model heeft ook zonneschijn als extra regressor'),
+            html.H4('Modelleren van de Fourier Terms'),
+            html.Div([
+                html.P('Het vierde model is hetzelfde als het derde model, echter is deze uitgebreid met de Fourier Terms om zo opnieuw het seizoenscompent te modelleren. Zoals te zien in de grafiek hieronder zakken de Fourier Terms in de herfst- en wintermaanden onder nul, dit zou niet moeten kunnen aangezien de teruglevering niet negatief kan zijn.')
+                ]),
                 dcc.Graph(
                     id='fig_FT_3',
                     figure=fig_FT_3
@@ -1004,6 +1088,9 @@ def render_content(tab):
                     figure=fig_FT_4
                     ),
             html.H3('Voorspelling Zonneschijnuren, Fourier Terms en tranformatie op de teruglevering'),
+            html.Div([
+                html.P('Na de Fourier Terms gemodeleerd te hebben, is er met deze waardes een model gebouwd waarvan de voorspelling hieronder te zien is. De voorspelling is in vergelijking met de werkelijke waardes niet erg best, de voorspelde waarden liggen namelijk lager dan de werkelijke waarden. Wat wel goed is aan dit model is dat de fluctuatie goed gevolgd wordt, alleen haalt deze dezelfde hoogte dus niet.')
+                ]),
                 dcc.Graph(
                     id='voorspelling_model4',
                     figure=voorspelling_model4
@@ -1012,12 +1099,37 @@ def render_content(tab):
     elif tab == 'Tab_ZT':
         return html.Div([
             html.H3('Model met Zonneschijnuren en Temperatuur modelleren'),
+            html.Div([
+                html.P('Het vijfde model dat is gemaakt neemt ook de temperatuur mee als extra voorspellende variabele. Het model dat hiermee is gemaakt is gebaseerd op het tweede model, waarin de duur van de zonneschijn wordt meegenomen en geen verdere acties zijn ondernomen om de teruglevring zo goed mogelijk te voorspellen. De voorspellin van dit model is hieronder in de grafiek te zien. De voorspelling wijkt zowel in de toppen als dalen af van de werkelijke waarden; de toppen liggen lager en de dalen liggen hoger. ')
+                ]),
                 dcc.Graph(
                     id='voorspelling_model5',
                     figure=voorspelling_model5
                     ), 
                 ])
-    
+    else:
+        return html.Div([
+            html.H3('De conclusie'),
+            html.Div([
+                html.P('Het uiteindelijke beste model is het model .... Hiermee is dan ook de voorspelling gedaan voor de week vooruit'),
+                ]),
+            ])
+
+@app.callback(Output('Gem_tl', 'figure'), 
+              [Input('dropdown_mean', 'value')])
+def update_mean(mean_type):
+    return dict_mean[mean_type] # Zoek juiste figuur 
+
+@app.callback(Output('Rolling_mean_weer', 'figure'), 
+              [Input('dropdown_weer', 'value')])
+def update_weer_mean(mean_type):
+    return dict_weer[mean_type] # Zoek juiste figuur
+
+@app.callback(Output('Regplot_weer_tl', 'figure'), 
+              [Input('dropdown_reg', 'value')])
+def update_reg(mean_type):
+    return dict_reg[mean_type] # Zoek juiste figuur
+
 if __name__ == '__main__':
     app.run_server(debug=True)
 
