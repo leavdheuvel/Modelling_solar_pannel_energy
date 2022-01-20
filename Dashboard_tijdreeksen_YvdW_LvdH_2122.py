@@ -644,7 +644,7 @@ fig_split.add_trace(go.Scatter(x=ts_train.index, y=ts_train['teruglevering'],
                                name = 'Train'))
 
 fig_split.add_trace(go.Scatter(x=ts_test.index, y=ts_test['teruglevering'],
-                               name = 'Train'))
+                               name = 'Test'))
 
 fig_split.update_layout(title={'text':'Train-test split'})
 
@@ -683,9 +683,7 @@ res_fourier = pm.auto_arima(ts_train['teruglevering_int_1_sc'],
                         error_action = 'ignore', stepwise = True
                        )
 
-model_1 = res_fourier.summary()
-model_1 = model_1.as_html()
-model_1
+model_1 = str(res_fourier.summary())
 
 #%% Model 2 plotten
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -694,7 +692,10 @@ res_zon1 = SARIMAX(ts_train['teruglevering_sc'],
                    exog = ts_train[['zonneschijn_sc']],
                    trend = None
                   ).fit()
-res_zon1.summary()
+
+model_2 = str(res_zon1.summary())
+
+
 voorspelling_model2 = plot_forecast('pred_zon2_rev', 'Voorspelling van model met zonneschijn als extra regressor')
 
 #%% Model 3 plotten
@@ -780,7 +781,7 @@ res_zon3 = pm.auto_arima(ts_train['teruglevering_sqrt_sc'],
                         information_criterion = 'aic', trace = True, 
                         error_action = 'ignore', stepwise = True
                        )
-res_zon3.summary()
+model_3 = str(res_zon3.summary())
 
 voorspelling_model3 = plot_forecast('pred_zon3_sqrd', 'Voorspelling van model op wortel van tergulevering met zonneschijn als extra regressor')
 
@@ -797,7 +798,8 @@ res_zon_fourier = pm.auto_arima(ts_train['teruglevering_sqrt_sc'],
                         information_criterion = 'aic', trace = True, 
                         error_action = 'ignore', stepwise = True
                        )
-res_zon_fourier.summary()
+
+model_4 = str(res_zon_fourier.summary())
 
 fig_FT_3 = plot_fourier2(df_fourier, 'Fourier_1_zf', 'Fourier_1_zf', 
                          df_fourier, 'Fourier_2_zf', 'Fourier_2_zf', 
@@ -817,7 +819,7 @@ res_zon_temp = SARIMAX(ts_train['teruglevering_sc'],
                        trend = None
                       ).fit()
 
-res_zon_temp.summary()
+model_5 = str(res_zon_temp.summary())
 
 voorspelling_model5 = plot_forecast('pred_zon_temp_rev', 
               'Voorspelling van model met zonneschijn men temperatuur als extra regressors')
@@ -845,8 +847,7 @@ app.layout = html.Div([
         dcc.Tab(label='Model Zonneschijnuren, zonder Fourier Terms', value='Tab_Z'),
         dcc.Tab(label='Model Zonneschijnuren en transformatie Teruglevering', value='Tab_Z2'),
         dcc.Tab(label='Model Zonneschijnuren, Fourier Terms en transformatie Teruglevering', value='Tab_Z_FT'),
-        dcc.Tab(label='Model Zonneschijnuren en Temperatuur, zonder Fourier Terms', value='Tab_ZT'),
-        dcc.Tab(label='De conclusie', value='Tab_conclusie')
+        dcc.Tab(label='Model Zonneschijnuren en Temperatuur, zonder Fourier Terms', value='Tab_ZT')
     ]),
     html.Div(id='Tabs_content')
 ])
@@ -859,12 +860,12 @@ def render_content(tab):
             html.H3('Voorspellen van het energieverbruik van zonnepanelen'),
             html.Div([
                 html.B('De opdracht:'),
-                html.P('Steeds meer huishoudens stappen over naar zonnepanelen, dit komt doordat duurzame energie tegenwoordig enorm in is. Daarnaast is er de mogelijkheid om de energie die opgewekt wordt via de zonnepanelen terug te leveren aan het energienetwerk. (waarom is dat fijn?). Dit is erg fijn, maar hoe zit het met de de hoeveelheid energie die wordt opgewekt als de zon niet of nauwelijks schijnt. (bruggetje naar de opdracht), om hier een beter inzicht te krijgen is dan ook de vraag om een voorspellingsmodel te maken dat één week vooruit voorspelt wat het energieverbruik is door zonnepanelen.'),
+                html.P('Steeds meer huishoudens stappen over naar zonnepanelen, dit komt doordat duurzame energie tegenwoordig enorm in is. Daarnaast is er de mogelijkheid om de energie die opgewekt wordt via de zonnepanelen terug te leveren aan het energienetwerk. (waarom is dat fijn?). Dit is erg fijn, maar hoe zit het met de de hoeveelheid energie die wordt opgewekt als de zon niet of nauwelijks schijnt. Om hier een beter inzicht te krijgen is dan ook de vraag om een voorspellingsmodel te maken dat één week vooruit voorspelt wat het energieverbruik is door zonnepanelen.'),
                 html.B('De werkwijze:'),
                 html.P('De manier waarop te werk is gegaan is als volgt: Allereerst is er onderzoek gedaan naar de te verklaren variabele, de zonne-energie. Vervolgens is door middel van de overige variabelen te plotten en de onderlinge correlatie te onderzoeken besloten welke variabele er kunnen dienen als extra verklarend voor de zonne-energie. Nadat dat deze zijn vastgesteld is er databewerking gedaan, zo is er onderzocht of er outliers in de variabelen zitten en hoe de (partiële) autocorrelatie er uit ziet. Als laatste stap in de databewerking is er splitsing gemaakt in een train- en testdataset.'),
                 html.P('Nadat alle bewerkingen voltooid zijn, zijn er verschillende modellen gemaakt. Er is begonnen met een model met alleen de zonne-energie als de te verklare variabele. Vervolgens is deze stapje voor stapje uitgebreid en daarmee is het uiteindelijke model ontstaan.'),
                 html.B('De datasets:'),
-                html.P('De datasets die zijn gebruikt voor het onderzoek zijn: (precieze namen)'),
+                html.P('De eerste dataset die gebruikt is voor de voorspelling is een dataset met daarin het elektriciteitsverbruik, de teruglevering van de zonne-panelen en het gasverbruik. De andere dataset die gebruikt is, bestaat uit verschillende weersvariabelen, namelijk: Het aantal uur dat de zon schijnt, de temperatuur, de duur van de neerslag en de hoeveelheid neerslag die valt. '),
                 html.B('De studenten:'),
                 html.P('Lea van den Heuvel (10857020) en Ymke van der Waal (18071279)')
                 ]),
@@ -896,9 +897,10 @@ def render_content(tab):
                     id='Boxplot_per_maand',
                     figure=fig_boxplot
                     ),
-            html.H3('Gemiddelde per dag(week/maand)/jaar'),
+            html.H3('Gemiddelde teruglevering'),
             html.Div([
-                html.P('!!! Nog iets van tekst !!!')
+                html.P('In de grafiek hieronder is de teruglevering van de zonne-panelen geplot. Door middel van het dropdown-menu kan er gekozen worden voor welke periode men het gemiddelde wil zien.'),
+                html.P('Als er wordt gekeken naar het gemiddelde per dag van de week is te zien dat op vrijdag de meeste energie wordt teruggeleverd. Kijkend naar het gemiddelde per dag van de maand is er te zien dat er gemiddeld genomen een enorme stijging zit van achtste dag naar de dertiende dag van de maand. Verder schommelt het gemiddelde op en neer tussen de dagen. Ten slotte als er gekeken wordt naar het gemiddelde per maand, is er een duidelijk stijging te zien in de lente en in de herfst daalt de teruglevering weer.')
                 ]),
                 dcc.Dropdown(
                     id='dropdown_mean',
@@ -914,7 +916,7 @@ def render_content(tab):
                     ),
             html.H3('ACF en PACF'),
             html.Div([
-                html.P('!!! Nog iets van tekst !!!')
+                html.P('Ten slotte wordt er gekeken naar de autocorrelatie en de partiele autocorrelatie. Beide zijn hieronder afgebeeld, de bovenste is de autocorrelatie en de onderste is de partiele autocorrelatie. Uit de ACF plot valt af te lezen dat alles significant is, daarom is er voor gekozen om de terugelevering de differentiëren. De ACF en PACF plots zijn in het volgende stukje afgebeeld.')
                 ]),
                 dcc.Graph(
                     id='ACF_en_PACF_zonne_energie',
@@ -922,7 +924,7 @@ def render_content(tab):
                     ),
             html.H3('ACF en PACF zonne-energie gedifferentiëerd'),
             html.Div([
-                html.P('')
+                html.P('In de grafieken hieronder zijn de ACF en PACF plot van de gedifferentieerde tijdreeks te zien. Hieruit kan geconcludeerd worden dat de gedifferentieerde tijdreeks beter is voor de voorspelling, deze tijdreeks wordt dan ook gebruikt voor de voorspelling.')
                 ]),
                 dcc.Graph(
                     id='ACF_en_PACF_zonne_energie_gedifferentiëerd',
@@ -978,7 +980,7 @@ def render_content(tab):
         return html.Div([
             html.H3('Resultaat Isolation Forest'),
             html.Div([
-                html.P('Nadat alle variabelen zijn onderzocht is de data bewerkt zodat deze gebruikt kan worden voor de modellen. Het eerst wat gedaan wordt is het onderzoeken van de eventuele outliers. Hiervoor wordt het Isolation Forest alogritme gebruikt. (werking hierin of in notebook laten?)'),
+                html.P('Nadat alle variabelen zijn onderzocht is de data bewerkt zodat deze gebruikt kan worden voor de modellen. Het eerst wat gedaan wordt is het onderzoeken van de eventuele outliers. Hiervoor wordt het Isolation Forest alogritme gebruikt.'),
                 html.P('Uit de isolation forest van het eerste model volgen meerder outliers, er is voor gekozen om alleen de outliers aan de rechterkant te interpoleren. Vanwege het feit dat het model aan het begin van de tijdreeks nog aan het leren is en hierdoor meer datapunten als outliers ziet dan aan het eind van de tijdreeks. Met dit gegeven en de visualisatie van de outliers is besloten om de 5 meest rechter outliers te vervangen door middel van interpolatie.')
                 ]),
                 dcc.Graph(
@@ -995,13 +997,15 @@ def render_content(tab):
                     ),
             html.H3('PACF'),
             html.Div([
-                html.P('Bij de PACF wel; in de originele tijdreeks is lag 7 niet significant maar lag 8 wel, terwijl het in de bewerkte tijdreeks andersom is. Lag 6 is in de originele tijdreeks positief, maar in de bewerkte tijdreeks negatief.'),
-                html.P('De verschillen zijn niet heel groot. Net zoals lag 7 in ded orignele tijdreeks ligt lag 8 in de bewerkte tijdreeks maar net buiten het betrouwbaarheidsinterval, en de correlatie van lag 6 is niet significant. Om deze reden is er dus voor gekozen te werken met de bewerkte tijdreeks voor het eerste model omdat hier geen extra regressors (zonneschijn of temperatuur) aan toegevoegd worden. Waar zonneschijn wordt toegevoegd als extra regressor wordt in eerste instantie gewerkt met de originele tijdreeks, omdat de correlatie tussen die twee erg hoor is.')
+                html.P('Bij de PACF wel; in de originele tijdreeks is lag 7 niet significant maar lag 8 wel, terwijl het in de bewerkte tijdreeks andersom is. Lag 6 is in de originele tijdreeks positief, maar in de bewerkte tijdreeks negatief.')
                 ]),
                 dcc.Graph(
                     id='PACF_int',
                     figure=fig_pacf_int
                     ),
+            html.Div([
+                html.P('De verschillen zijn niet heel groot. Net zoals lag 7 in ded orignele tijdreeks ligt lag 8 in de bewerkte tijdreeks maar net buiten het betrouwbaarheidsinterval, en de correlatie van lag 6 is niet significant. Om deze reden is er dus voor gekozen te werken met de bewerkte tijdreeks voor het eerste model omdat hier geen extra regressors (zonneschijn of temperatuur) aan toegevoegd worden. Waar zonneschijn wordt toegevoegd als extra regressor wordt in eerste instantie gewerkt met de originele tijdreeks, omdat de correlatie tussen die twee erg hoor is.')
+                ]),
             html.H3('Train-test split'),
             html.Div([
                 html.P('Ten slotte wordt de data gesplitst in een train- en testdataset. De volledige dataset bevat 336 dagen, aangezien de opdracht is om één week (7 dagen) te voorspellen, is er voor gekozen om de testdataset 35 dagen (vijf weken) te laten zijn.')
@@ -1015,7 +1019,7 @@ def render_content(tab):
         return html.Div([
             html.H3('Model met Fourier Terms om seizoen te modelleren'),
             html.Div([
-                html.P('Voor het maken van het eerste model is er alleen gekeken naar de te verklaren variabele, namelijk de teruglevering van de zonne-energie. Als eerst zijn er Fourier terms toegevoegd om het seizoenscomponent te modelleren. Dit is nodig om dat de dataset korter is dan twee jaar, hierdoor kan ARIMA het seizoen niet herkennen. In de graafiek hieronder is te zien hoe de Fourier Terms zich gedragen. Het lijkt er op dat de Fourier Terms het seizoen redelijk volgen. Wat wel opvallend is, is dat deze lager wordt dan nul, terwijl de teruglevering geen negatieve waarde kan aannemen. Het minimum van de Fourier Terms zou het liefst tussen december en januari vallen, omdat daar de minste stroom wordt teruggeleverd, echter valt deze nu in maart.')
+                html.P('Voor het maken van het eerste model is er alleen gekeken naar de te verklaren variabele, namelijk de teruglevering van de zonne-energie. Als eerst zijn er Fourier Terms toegevoegd om het seizoenscomponent te modelleren. Dit is nodig om dat de dataset korter is dan twee jaar, hierdoor kan ARIMA het seizoen niet herkennen. In de graafiek hieronder is te zien hoe de Fourier Terms zich gedragen. Het lijkt er op dat de Fourier Terms het seizoen redelijk volgen. Wat wel opvallend is, is dat deze lager wordt dan nul, terwijl de teruglevering geen negatieve waarde kan aannemen. Het minimum van de Fourier Terms zou het liefst tussen december en januari vallen, omdat daar de minste stroom wordt teruggeleverd, echter valt deze nu in maart.')
                 ]),
                 dcc.Graph(
                     id='FT_1',
@@ -1033,12 +1037,16 @@ def render_content(tab):
                     id='voorspelling_model1',
                     figure=voorspelling_model1
                     ),
-                # Html code voor output results model1
-            html.Div(html.P(html.Code(model_1)))
+            html.H3('Resulten van het model'),
+            html.Div([
+                html.P('Hieronder is het resultaat van het eerste model te zien. Hieruit valt te concluderen dat bijna alle varaibelen significant zijn voor het voorspellingsmodel. Daarnaast valt de AIC-waarde af te lezen, deze staat voor Akaike infromation criteria, dit is een schatter voor de voorspellingsfout. Hoe lager deze waarde des te beter het model is. Ten slotte kunnen er nog uitspraken gedaan worden over de residuen van het model, zo zijn deze onafhankelijk van elkaar en volgen ze redelijk de normaalverdeling.'),
+                html.P('Al met al is dit model geen goede voorspeller voor de teruglevering van de zonne-energie. Om een beter model te maken is er in het volgende model een extra voorspellende variabele toegevoegd, de duur van de zonneschijn.')
+                ]),
+            html.Div(html.P(children=model_1, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_Z':
         return html.Div([
-            html.H3('Model met Zonneschijnuren als voorspellende variabele zonder Fourier Terms modelleren'),
+            html.H3('Model met Zonneschijnuren als voorspellende variabele zonder Fourier Terms'),
             html.Div([
                 html.P('Het eerste model geeft geen beste voorspelling voor de teruglevering van de zonne-energie. Om te zorgen dat het model beter wordt, is er voor gekozen om extra voorspellende variabele te gebruiken, namelijk het aantal zonneschijnuren op een dag. Daarnaast wordt in dit model geen gebruik gemaakt van de Fourier Terms.'),
                 html.P('In de grafiek hieronder is de voorspelling te zien van het tweede model. Deze voorspelling ziet er een stuk beter uit dan de voorspelling hiervoor. Alleen in de wintermaanden zijn de voorspeldes waarden nog te hoog en in de zomermaanden liggen de waarden te dicht bij elkaar.')
@@ -1046,13 +1054,19 @@ def render_content(tab):
                 dcc.Graph(
                     id='voorspelling_model2',
                     figure=voorspelling_model2
-                    ),   
+                    ),
+            html.H3('Resulten van het model'),
+            html.Div([
+                html.P('Hieronder is het result van het tweede model te zien. Hieruit kan geconcludeerd worden dat alle variabelen significant zijn. Daarnaast is de AIC-waarde een stuk lager ten opzichte van het vorige model. Op basis hiervan kan er dus geconcludeerd worden dat dit model beter voorspelt dan het model hiervoor. Dit is ook al te zien aan de grafiek hierboven, deze volgt al een stuk beter de werkelijke waarden. Ten slotte kan er over de residuen gezegd worden dat deze onafhankelijk zijn en normaal verdeeld.'),
+                html.P('Dus dit tweede model met de duur dat de zon schijnt als extra voorspellende waarde zorgt voor een beter model dan het model dat alleen uitgaat van teruggeleverde energie. Maar het voorspelmoet zeker nog beter kunnen voorspellen dan dit. Daarom is er voor het volgende model gekozen om een transformatie uit te voeren met de teruglevering.')
+                ]),
+            html.Div(html.P(children=model_2, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_Z2':
         return html.Div([
-            html.H3('Model met Zonneschijnuren en transformatie op de teruglevering modelleren'),
+            html.H3('Model met Zonneschijnuren en transformatie op de teruglevering'),
             html.Div([
-                html.P('Text')
+                html.P('Vor dit model wordt een transformatie gedaan op de te verklaren variabele, de teruglevering. Hierdoor moet er door middel van een ACF en PACF plot gecontroleerd worden of de (partiele) autocorrelatie veranderd ten opzichte van de originle tijdreeks. Dit heeft namelijk invloed op het maken van het voorspellingsmodel. Zoals te zien veranderen zowel de autocorrelatie als de partiele autocorrelatie.')
                 ]),
                 dcc.Graph(
                     id='fig_corr3',
@@ -1071,10 +1085,16 @@ def render_content(tab):
                     id='voorspelling_model3',
                     figure=voorspelling_model3
                     ), 
+            html.H3('Resulten van het model'),
+            html.Div([
+                html.P('Het resultaat van het derde voorspelmodel staat hieronder afgebeeld. Wat opmerkelijk is, is dat de AIC-waarde van dit model een stuk hoger ligt dan het tweede model, waarbij geen transformatie is toegepast op de teruglevering, sterker nog dit model heeft de hoogste AIC-waarde tot nu toe. En daarmee kan geconcludeerd worden dat dit model tot nu toe het slechts voorspelt. Verder kunnen er nog uitspraken gedaan worden over de residuen van dit model, deze zijn onafhankelijk en ook weer nagenoeg normaalverdeeld.'),
+                html.P('De conclusie die over dit model getrokken kan worden is dat dit model geen goede voorspeller is voor de teruglevering van de energie van de zonne-panelen. Er is dus zeker ruimte voor verbetering daarom is er voor gekozen om in het volgende model de Fourier Terms weer toe te voegen in de hoop dat dit een beter voorspelling geeft dan dit model.')
+                ]),
+            html.Div(html.P(children=model_3, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_Z_FT':
         return html.Div([
-            html.H3('Model met Zonneschijnuren, Fourier Terms en tranformatie op de teruglevering modelleren'),
+            html.H3('Model met Zonneschijnuren, Fourier Terms en tranformatie op de teruglevering'),
             html.H4('Modelleren van de Fourier Terms'),
             html.Div([
                 html.P('Het vierde model is hetzelfde als het derde model, echter is deze uitgebreid met de Fourier Terms om zo opnieuw het seizoenscompent te modelleren. Zoals te zien in de grafiek hieronder zakken de Fourier Terms in de herfst- en wintermaanden onder nul, dit zou niet moeten kunnen aangezien de teruglevering niet negatief kan zijn.')
@@ -1095,10 +1115,16 @@ def render_content(tab):
                     id='voorspelling_model4',
                     figure=voorspelling_model4
                     ), 
+            html.H3('Resulten van het model'),
+            html.Div([
+                html.P('Het resultaat van het vierde model is hieronder afgebeeld. Hieruit valt af te lezen dat zeker niet alle variabelen significant zijn in dit model. Wel is de AIC-waarde lager dan het model hiervoor, maar niet zo laag als het tweede model. Verder kan er geconcludeerd worden dat de residuen afhankelijk zijn, maar wel normaalverdeeld.'),
+                html.P('Dit model is niet het beste model tot nu toe, maar ook niet de slechtste. Om dat het lijkt alsof het aanpassen van dit model niet leidt tot een uitstekend model. Daarom wordt voor het volgende model alleen gekeken naar de duur van de zonneschijn en de temperatuur.')
+                ]),
+            html.Div(html.P(children=model_4, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_ZT':
         return html.Div([
-            html.H3('Model met Zonneschijnuren en Temperatuur modelleren'),
+            html.H3('Model met Zonneschijnuren en Temperatuur'),
             html.Div([
                 html.P('Het vijfde model dat is gemaakt neemt ook de temperatuur mee als extra voorspellende variabele. Het model dat hiermee is gemaakt is gebaseerd op het tweede model, waarin de duur van de zonneschijn wordt meegenomen en geen verdere acties zijn ondernomen om de teruglevring zo goed mogelijk te voorspellen. De voorspellin van dit model is hieronder in de grafiek te zien. De voorspelling wijkt zowel in de toppen als dalen af van de werkelijke waarden; de toppen liggen lager en de dalen liggen hoger. ')
                 ]),
@@ -1106,14 +1132,16 @@ def render_content(tab):
                     id='voorspelling_model5',
                     figure=voorspelling_model5
                     ), 
-                ])
-    else:
-        return html.Div([
+            html.H3('Resulten van het model'),
+            html.Div([
+                html.P('Hieronder staan de resultaten van het vijfde model. Alle variabelen uit dit model zijn significant en de AIC_waarde van dit model ligt lager dan de meeste voorgaande modellen. Verder valt er te concluderen dat de residuen onafhankelijk zijn en normaal verdeeld zijn.')
+                ]),
+            html.Div(html.P(children=model_5, style={'whiteSpace': 'pre-wrap'})),
             html.H3('De conclusie'),
             html.Div([
-                html.P('Het uiteindelijke beste model is het model .... Hiermee is dan ook de voorspelling gedaan voor de week vooruit'),
+                html.P('Uit de resultaten en voorspellingen van alle modellen valt te concluderen dat op basis van de AIC-waarde het tweede model, dus het model dat als extra voorspellende waarde de duur van de zonneschijn meeneemt het beste model is. En dus de beste voorspelling levert voor de teruglevering van de energie die opgewekt wordt met de zonne-panelen.')
                 ]),
-            ])
+                ])
 
 @app.callback(Output('Gem_tl', 'figure'), 
               [Input('dropdown_mean', 'value')])
