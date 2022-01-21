@@ -684,6 +684,7 @@ res_fourier = pm.auto_arima(ts_train['teruglevering_int_1_sc'],
                        )
 
 model_1 = str(res_fourier.summary())
+res_1 = res_fourier.plot_diagnostics()
 
 #%% Model 2 plotten
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -694,7 +695,7 @@ res_zon1 = SARIMAX(ts_train['teruglevering_sc'],
                   ).fit()
 
 model_2 = str(res_zon1.summary())
-
+res_2 = res_zon1.plot_diagnostics()
 
 voorspelling_model2 = plot_forecast('pred_zon2_rev', 'Voorspelling van model met zonneschijn als extra regressor')
 
@@ -782,6 +783,7 @@ res_zon3 = pm.auto_arima(ts_train['teruglevering_sqrt_sc'],
                         error_action = 'ignore', stepwise = True
                        )
 model_3 = str(res_zon3.summary())
+res_3 = res_zon3.plot_diagnostics()
 
 voorspelling_model3 = plot_forecast('pred_zon3_sqrd', 'Voorspelling van model op wortel van tergulevering met zonneschijn als extra regressor')
 
@@ -800,6 +802,7 @@ res_zon_fourier = pm.auto_arima(ts_train['teruglevering_sqrt_sc'],
                        )
 
 model_4 = str(res_zon_fourier.summary())
+res_4 = res_zon_fourier.plot_diagnostics()
 
 fig_FT_3 = plot_fourier2(df_fourier, 'Fourier_1_zf', 'Fourier_1_zf', 
                          df_fourier, 'Fourier_2_zf', 'Fourier_2_zf', 
@@ -820,9 +823,28 @@ res_zon_temp = SARIMAX(ts_train['teruglevering_sc'],
                       ).fit()
 
 model_5 = str(res_zon_temp.summary())
+res_5 = res_zon_temp.plot_diagnostics()
 
 voorspelling_model5 = plot_forecast('pred_zon_temp_rev', 
               'Voorspelling van model met zonneschijn men temperatuur als extra regressors')
+
+#%% Voorspelling
+voorspelling = pd.read_csv('voorspelling.csv', index_col = 'Date')
+voorspelling.index = pd.to_datetime(voorspelling.index)
+
+fig_voorspelling = go.Figure()
+
+fig_voorspelling.add_trace(go.Scatter(x=ts_model.index,
+                                        y=ts_model['teruglevering'],
+                                        name='Meting',
+                                        line_color='rgb(0,204,204)'
+                                       ))
+
+fig_voorspelling.add_trace(go.Scatter(x=voorspelling.index,
+                                        y=voorspelling['teruglevering_rev'],
+                                        name='Voorspelling',
+                                        line_color='rgb(0,0,0)'
+                                       ))
 
 #%% Dashboard
 import dash
@@ -847,7 +869,8 @@ app.layout = html.Div([
         dcc.Tab(label='Model Zonneschijnuren, zonder Fourier Terms', value='Tab_Z'),
         dcc.Tab(label='Model Zonneschijnuren en transformatie Teruglevering', value='Tab_Z2'),
         dcc.Tab(label='Model Zonneschijnuren, Fourier Terms en transformatie Teruglevering', value='Tab_Z_FT'),
-        dcc.Tab(label='Model Zonneschijnuren en Temperatuur, zonder Fourier Terms', value='Tab_ZT')
+        dcc.Tab(label='Model Zonneschijnuren en Temperatuur, zonder Fourier Terms', value='Tab_ZT'),
+        dcc.Tab(label='De voorspelling', value='Tab_voorspelling')
     ]),
     html.Div(id='Tabs_content')
 ])
@@ -1039,10 +1062,16 @@ def render_content(tab):
                     ),
             html.H3('Resulten van het model'),
             html.Div([
-                html.P('Hieronder is het resultaat van het eerste model te zien. Hieruit valt te concluderen dat bijna alle varaibelen significant zijn voor het voorspellingsmodel. Daarnaast valt de AIC-waarde af te lezen, deze staat voor Akaike infromation criteria, dit is een schatter voor de voorspellingsfout. Hoe lager deze waarde des te beter het model is. Ten slotte kunnen er nog uitspraken gedaan worden over de residuen van het model, zo zijn deze onafhankelijk van elkaar en volgen ze redelijk de normaalverdeling.'),
-                html.P('Al met al is dit model geen goede voorspeller voor de teruglevering van de zonne-energie. Om een beter model te maken is er in het volgende model een extra voorspellende variabele toegevoegd, de duur van de zonneschijn.')
+                html.P('Hieronder is het resultaat en de residuen van het eerste model te zien. Uit het resultaat vallen een aantal zaken te concluderen, namelijk dat bijna alle variabelen significant zijn voor het maken van het model, dit is te zien aan de berekende p-waardes. Als de p-waarde hoger ligt dan 0.05 is de variabele niet significant. In dit geval is alleen de Fourier Term van de sinus niet significant voor het model. Verder valt er af te lezen wat de AIC-waarde is, deze staat voor Akaike information criteria, dit is een schatter voor de voorspellingsfout. Hoe lager deze waarde des te beter het model is. Daarnaast kan aan de hand van zowel het resultaat als de residuen plots hieronder geconcludeerd worden dat deze redelijk normaal verdeeld zijn. Van de residuen kan er ook gezegd worden dat deze onderling onafhankelijk zijn, er is dus geen onderliggend verband tussen de residuen. Ten slotte is van dit model ook de Mean Absolute Error berekend om te bekijken hoe accuraat het model is met het voorspellen. Gekeken naar de spreiding van de teruglevering is een MAE van 6.5 een hoge waarde, en is er dus zeker ruimte voor verbetering van het model. Al met al kan er geconcludeerd worden dat dit geen goede voorspeller is voor de teruglevering van de zonne-energie. Om een beter model te maken is er in het volgende model een extra voorspellende variabele toegevoegd, de duur van de zonneschijn.'),
                 ]),
+            html.H4('Resultaat'),
             html.Div(html.P(children=model_1, style={'whiteSpace': 'pre-wrap'})),
+            html.H4('Residuen'),
+            # dcc.Graph(
+            #         id='res_1',
+            #         figure=res_1
+            #         ),
+            # html.Div(html.P(children=res_1, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_Z':
         return html.Div([
@@ -1057,10 +1086,15 @@ def render_content(tab):
                     ),
             html.H3('Resulten van het model'),
             html.Div([
-                html.P('Hieronder is het result van het tweede model te zien. Hieruit kan geconcludeerd worden dat alle variabelen significant zijn. Daarnaast is de AIC-waarde een stuk lager ten opzichte van het vorige model. Op basis hiervan kan er dus geconcludeerd worden dat dit model beter voorspelt dan het model hiervoor. Dit is ook al te zien aan de grafiek hierboven, deze volgt al een stuk beter de werkelijke waarden. Ten slotte kan er over de residuen gezegd worden dat deze onafhankelijk zijn en normaal verdeeld.'),
-                html.P('Dus dit tweede model met de duur dat de zon schijnt als extra voorspellende waarde zorgt voor een beter model dan het model dat alleen uitgaat van teruggeleverde energie. Maar het voorspelmoet zeker nog beter kunnen voorspellen dan dit. Daarom is er voor het volgende model gekozen om een transformatie uit te voeren met de teruglevering.')
+                html.P('Hieronder is het resultaat en de residuen van het tweede model te zien. Op basis van het resultaat kan er geconcludeerd worden alle variabelen significant zijn, alle p-waardes liggen immers onder de 0.05. Dit is dus al een verbetering ten opzichte van het eerste model. Daarnaast is de AIC-waarde een stuk lager ten opzichte van het vorige model, de AI-waarde is nog maar een vijfde van wat deze was bij het eerste model, ook dit is een goede verbetering en daarmee dus een beter voorspeller. Dit is ook te zien aan de grafiek hierboven waarin de voorspelling gevisualiseerd is. Vervolgens wordt er gekeken naar de residuen van dit model. Hierover kan gezegd worden dat deze onderling onafhankelijk zijn. Daarnaast zijn de residuen normaal verdeeld, dit valt zowel te concluderen uit het resultaat en de residuenplots hieronder. Ten slotte wordt er gekeken naar de MAE waarde, deze is lager dan het eerste model, namelijk 2.4. Op alle belangrijke onderdelen om te bepalen of een model een goede voorspeller is, is dit model beter dan het eerste model. Om verder onderzoek te doen naar een goed voorspelmodel, wordt voor het volgende model een transformatie op de teruglevering toegevoegd.')
                 ]),
             html.Div(html.P(children=model_2, style={'whiteSpace': 'pre-wrap'})),
+            html.H4('Residuen'),
+            # dcc.Graph(
+            #         id='res_2',
+            #         figure=res_2
+            #         ),
+            # html.Div(html.P(children=res_2, style={'whiteSpace': 'pre-wrap'}))
                 ])
     elif tab == 'Tab_Z2':
         return html.Div([
@@ -1087,10 +1121,15 @@ def render_content(tab):
                     ), 
             html.H3('Resulten van het model'),
             html.Div([
-                html.P('Het resultaat van het derde voorspelmodel staat hieronder afgebeeld. Wat opmerkelijk is, is dat de AIC-waarde van dit model een stuk hoger ligt dan het tweede model, waarbij geen transformatie is toegepast op de teruglevering, sterker nog dit model heeft de hoogste AIC-waarde tot nu toe. En daarmee kan geconcludeerd worden dat dit model tot nu toe het slechts voorspelt. Verder kunnen er nog uitspraken gedaan worden over de residuen van dit model, deze zijn onafhankelijk en ook weer nagenoeg normaalverdeeld.'),
-                html.P('De conclusie die over dit model getrokken kan worden is dat dit model geen goede voorspeller is voor de teruglevering van de energie van de zonne-panelen. Er is dus zeker ruimte voor verbetering daarom is er voor gekozen om in het volgende model de Fourier Terms weer toe te voegen in de hoop dat dit een beter voorspelling geeft dan dit model.')
+                html.P('Het resultaat en de residuen van het derde voorspelmodel staan hieronder afgebeeld. Wat opmerkelijk is, is dat de AIC-waarde van dit model een stuk hoger ligt dan het eerste en tweede model. Deze AIC-waarde ligt ruim een vijfde hoger ten opzichte van het eerste model. Ook is er een toename in de MAE, deze ligt nu op 3.1. Als de grafiek van het model hierboven wordt vergeleken met de vorige twee dan ziet deze voorspelling er wel beter uit. Dit maakt het opmerkelijk dat de twee waardes zijn toegenomen. Wat ook een verbetering is ten opzichte van de vorige modellen is dat de teruglevering niet meer een negatief waarde kan aannemen. Verder kan op basis van de p-waarden geconcludeerd worden dat bijna alle variabelen significant zijn in het voorspelmodel. Ten slotte kan over de residuen gezegd worden dat deze onafhankelijk zijn van elkaar en nagenoeg normaal verdeeld zijn. Al met al is de conclusie dat dit model op basis van de AIC-waarde en de MAE geen goed voorspelmodel is. Voor het volgende model worden de Fourier Terms weer meegenomen.')
                 ]),
             html.Div(html.P(children=model_3, style={'whiteSpace': 'pre-wrap'})),
+            html.H4('Residuen'),
+            # dcc.Graph(
+            #         id='res_3',
+            #         figure=res_3
+            #         ),
+            # html.Div(html.P(children=res_3, style={'whiteSpace': 'pre-wrap'})),
                 ])
     elif tab == 'Tab_Z_FT':
         return html.Div([
@@ -1117,10 +1156,15 @@ def render_content(tab):
                     ), 
             html.H3('Resulten van het model'),
             html.Div([
-                html.P('Het resultaat van het vierde model is hieronder afgebeeld. Hieruit valt af te lezen dat zeker niet alle variabelen significant zijn in dit model. Wel is de AIC-waarde lager dan het model hiervoor, maar niet zo laag als het tweede model. Verder kan er geconcludeerd worden dat de residuen afhankelijk zijn, maar wel normaalverdeeld.'),
-                html.P('Dit model is niet het beste model tot nu toe, maar ook niet de slechtste. Om dat het lijkt alsof het aanpassen van dit model niet leidt tot een uitstekend model. Daarom wordt voor het volgende model alleen gekeken naar de duur van de zonneschijn en de temperatuur.')
+                html.P('Het resultaat en de residuen van het vierde model zijn hieronder afgebeeld. In dit model zijn bijna alle variabelen niet significant, dit omdat de p-waarden bijna allemaal hoger liggen dan 0.05. Wel is de AIC-waarde lager dan het model hiervoor, dus ten opzichte van het vorige model is dit een verbetering. Echter als de AIC-waarde vergeleken wordt met de andere twee modellen, is deze nog steeds te hoog om te concluderen dat dit het beste voorspelmodel is. Ook als de MAE waarde er bij betrokken wordt, is te zien dat dit geen beste voorspeller is. De MAE waarde van dit model is 3.6, deze is ook hoger dan het voorgaande model. Verder valt er over de residuen te concluderen dat deze onderling afhankelijk zijn van elkaar, er ligt dus een onderliggend verband tussen de residuen. Daarnaast is te zien dat de residuen iets weg hebben van een normaal verdeling, maar dan met een platte piek, en daarom zijn de residuen niet normaal verdeeld. Op basis van het resultaat en de residuen kan er geconcludeerd worden dat dit model geen goede voorspeller is. Voor het volgende voorspelmodel is er een extra voorspeller toegevoegd, namelijk de temperatuur.')
                 ]),
             html.Div(html.P(children=model_4, style={'whiteSpace': 'pre-wrap'})),
+            html.H4('Residuen'),
+            # dcc.Graph(
+            #         id='res_4',
+            #         figure=res_4
+            #         ),
+            # html.Div(html.P(children=res_4, style={'whiteSpace': 'pre-wrap'}))
                 ])
     elif tab == 'Tab_ZT':
         return html.Div([
@@ -1134,14 +1178,32 @@ def render_content(tab):
                     ), 
             html.H3('Resulten van het model'),
             html.Div([
-                html.P('Hieronder staan de resultaten van het vijfde model. Alle variabelen uit dit model zijn significant en de AIC_waarde van dit model ligt lager dan de meeste voorgaande modellen. Verder valt er te concluderen dat de residuen onafhankelijk zijn en normaal verdeeld zijn.')
+                html.P('Hieronder staan de resultaten en de residuen van het vijfde model. Voor het vijfde model zijn bijna alle variabelen uit dit model zijn significant, te zien aan dat bijna alle p-waardes onder de 0.05 liggen. Kijkend naar de AIC-waarde van dit model, valt er te concluderen dat deze lager ligt dan de meeste voorgaande voorspelmodellen. Het enige model dat een lager AIC-waarde heeft, is het tweede model. Vervolgens wordt gekeken naar de MAE, deze is 12,8, de hoogste waarde van alle modellen. Vervolgens als er gekeken wordt naar de coëfficiënten van dit model valt er te concluderen dat de extra variabelen temperatuur geen toegevoegde waarde heeft voor het model. De coëfficiënt is immers erg laag. Ten slotte worden de residuen bekeken. Hieruit valt te concluderen dat de residuen onafhankelijk zijn van elkaar, er is dus geen onderliggend verband aanwezig. Verder zijn de residuen redelijk normaal verdeeld. Al met al valt er te concluderen dat dit model niet de beste voorspeller is.')
                 ]),
             html.Div(html.P(children=model_5, style={'whiteSpace': 'pre-wrap'})),
+            html.H4('Residuen'),
+            # dcc.Graph(
+            #         id='res_5',
+            #         figure=res_5
+            #         ),
+            # html.Div(html.P(children=res_2, style={'whiteSpace': 'pre-wrap'})),
+                ])
+    else:
+        return html.Div([
             html.H3('De conclusie'),
             html.Div([
-                html.P('Uit de resultaten en voorspellingen van alle modellen valt te concluderen dat op basis van de AIC-waarde het tweede model, dus het model dat als extra voorspellende waarde de duur van de zonneschijn meeneemt het beste model is. En dus de beste voorspelling levert voor de teruglevering van de energie die opgewekt wordt met de zonne-panelen.')
+                html.P('Het eerste model is alleen de terug geleverde energie meegenomen, dit is immers de te verklaren variabelen. Bij dit model zijn de AIC-waarde en mean absolute error zijn te hoog en op basis daar van is geconcludeerd dat dit geen goede voorspeller is. Vervolgens is de extra voorspellende variabele de duur van de zonneschijn toegevoegd, dit resulteerde in het tweede model. Dit model heeft zowel de beste AIC-waarde als mean absolute error, op basis hiervan wordt dan ook geconcludeerd dat dit het beste model is om de teruglevering van de zonne-energie te voorspellen. Na dit model zijn er nog andere modellen gemaakt om te onderzoeken of andere toevoegingen zorgen voor een nóg beter model. Het derde model, waarbij er een transformatie op de teruglevering is gedaan, zorgde voor de hoogste AIC-waarde en een hogere MAE dan het tweede model. Wat dit model wel een goed model maakt is dat de teruglevering niet negatief voorspelt kan worden, dit komt door de transformatie die gedaan is op de teruglevering. Vanwege het feit dat dit model niet beter is dan het tweede model is er voor gekozen om dit model uit te breiden door het seizoenscomponent te modelleren, hierdoor ontstond het vierde model. De AIC-waarde van dit model is lager dan die van het eerste en derde model, maar niet lager dan die van het tweede model. Ook de MAE van dit model is niet beter geworden dan die van het tweede model. Voor het laatste model is er afgestapt van de transformatie en het modelleren van het seizoenscomponent, wel is er een extra voorspellende variabele toegevoegd, namelijk de temperatuur. Dit zorgt voor een vergelijkbare AIC-waarde als die van het tweede model. Echter is de MAE het hoogst in vergelijking met alle voorgaande modellen. Dit model is dus niet een beter voorspelmodel dan het tweede voorspelmode.'),
+                html.P('Al met al valt er te concluderen dat het tweede model het beste model is om een week vooruit mee te voorspellen. Een verbetering voor dit model is dat de terug geleverde energie niet negatief voorspelt kan worden, omdat dit in de praktijk namelijk ook niet mogelijk is. Voor een volgend voorspelmodel over dezelfde te verklaren variabele wordt dan ook geadviseerd om hiernaar te kijken. Daarnaast zijn er voor de verschillende modellen naar twee extra voorspellende variabelen gekeken, de duur van de zonneschijn en de temperatuur. Echter bestaan er veel meer variabelen die te maken hebben met het weer. Ook hier zo dus verder onderzoek naar gedaan kunnen worden om zo een beter voorspelmodel tot stand te brengen. ')
                 ]),
-                ])
+            html.H3('De voorspelling'),
+            html.Div([
+                html.P('Hieronder is de voorspelling van één week vooruit met het model waarbij de duur van de zonneschijn wordt meegenomen als extra voorspellende variabele.')
+                ]),
+            dcc.Graph(
+                    id='voorspelling',
+                    figure=fig_voorspelling
+                    ),
+            ])
 
 @app.callback(Output('Gem_tl', 'figure'), 
               [Input('dropdown_mean', 'value')])
